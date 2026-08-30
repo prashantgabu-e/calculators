@@ -383,11 +383,10 @@ function Sidebar({
       <aside className={`sidebar${isCollapsed ? " collapsed" : ""}${isOpen ? " open" : ""}`}>
         <Link className="brand" to="/">
           <span className="brand-mark">
-            <Calculator size={18} strokeWidth={2.4} />
+            <Calculator size={16} strokeWidth={2.2} />
           </span>
           <div className="brand-copy">
-            <strong>Calcverse</strong>
-            <span>Dashboard</span>
+            <strong>Calculators</strong>
           </div>
         </Link>
 
