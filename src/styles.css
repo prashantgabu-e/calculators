@@ -85,6 +85,10 @@ button {
   min-height: 100vh;
 }
 
+.shell.sidebar-collapsed {
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -96,6 +100,14 @@ button {
   border-right: 1px solid var(--line);
   background: color-mix(in srgb, var(--panel-solid) 75%, transparent);
   backdrop-filter: blur(18px);
+  z-index: 20;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 17, 29, 0.42);
+  z-index: 19;
 }
 
 .brand {
@@ -118,6 +130,10 @@ button {
   font-size: 0.82rem;
 }
 
+.brand-copy {
+  min-width: 0;
+}
+
 .brand-mark {
   display: grid;
   place-items: center;
@@ -128,13 +144,16 @@ button {
   color: #08111d;
   font-size: 1rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .theme-toggle,
 .nav-item,
 .segment,
 .calc-button,
-.dashboard-card {
+.dashboard-card,
+.sidebar-toggle,
+.sidebar-close {
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -154,6 +173,15 @@ button {
   color: var(--text);
 }
 
+.theme-toggle,
+.nav-item,
+.sidebar-toggle,
+.sidebar-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
 .nav-list {
   display: grid;
   gap: 0.45rem;
@@ -169,12 +197,22 @@ button {
   font-size: 0.92rem;
 }
 
+.nav-item svg,
+.theme-toggle svg,
+.card-icon,
+.page-title-icon,
+.sidebar-toggle svg {
+  flex-shrink: 0;
+}
+
 .nav-item:hover,
 .nav-item.active,
 .theme-toggle:hover,
 .segment:hover,
 .calc-button:hover,
-.dashboard-card:hover {
+.dashboard-card:hover,
+.sidebar-toggle:hover,
+.sidebar-close:hover {
   transform: translateY(-1px);
 }
 
@@ -192,6 +230,28 @@ button {
 .page-stack {
   display: grid;
   gap: 1rem;
+}
+
+.page-header-main,
+.page-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.page-header-main {
+  justify-content: flex-start;
+}
+
+.sidebar-toggle,
+.sidebar-close {
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .page-header h1 {
@@ -238,6 +298,10 @@ button {
   justify-content: flex-end;
 }
 
+.card-icon {
+  color: var(--brand);
+}
+
 .dashboard-card strong {
   font-size: 1rem;
 }
@@ -275,7 +339,7 @@ button {
 }
 
 .form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .field {
@@ -484,19 +548,36 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
-    position: static;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: min(86vw, 320px);
+    height: 100vh;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 180ms ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 
   .dashboard-grid,
   .calculator-grid,
-  .form-grid,
   .result-panel,
   .converter-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -518,5 +599,57 @@ button {
 
   .calc-button {
     min-height: 58px;
+  }
+
+  .dashboard-grid,
+  .result-panel,
+  .converter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-header-main {
+    gap: 0.65rem;
+  }
+
+  .formula-row {
+    gap: 0.65rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .form-grid,
+  .dashboard-grid,
+  .result-panel,
+  .converter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .converter-column,
+  .result-inline.block {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1101px) {
+  .sidebar.collapsed {
+    padding-inline: 0.85rem;
+  }
+
+  .sidebar.collapsed .brand-copy,
+  .sidebar.collapsed .theme-toggle span,
+  .sidebar.collapsed .nav-item span,
+  .sidebar.collapsed .sidebar-close {
+    display: none;
+  }
+
+  .sidebar.collapsed .brand,
+  .sidebar.collapsed .theme-toggle,
+  .sidebar.collapsed .nav-item {
+    justify-content: center;
+  }
+
+  .sidebar.collapsed .theme-toggle,
+  .sidebar.collapsed .nav-item {
+    padding-inline: 0.75rem;
   }
 }

@@ -1,3 +1,24 @@
+import {
+  ArrowRightLeft,
+  Calculator,
+  CalendarDays,
+  HandCoins,
+  HeartPulse,
+  Landmark,
+  LayoutGrid,
+  Menu,
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Percent,
+  PiggyBank,
+  Receipt,
+  Sun,
+  Tag,
+  TrendingUp,
+  Wallet,
+  type LucideIcon
+} from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 
@@ -6,6 +27,7 @@ type CalculatorRoute = {
   slug: string;
   title: string;
   category: string;
+  icon: LucideIcon;
   component: () => ReactNode;
 };
 type CalcButton = {
@@ -122,55 +144,144 @@ const converterOptions: Record<ConverterCategoryKey, Record<string, UnitDefiniti
 };
 
 const calculatorRoutes: CalculatorRoute[] = [
-  { slug: "simple-calculator", title: "Simple Calculator", category: "Core", component: SimpleCalculatorPage },
-  { slug: "percentage-calculator", title: "Percentage Calculator", category: "Math", component: PercentageCalculatorPage },
-  { slug: "sip-calculator", title: "SIP Calculator", category: "Finance", component: SipCalculatorPage },
-  { slug: "emi-calculator", title: "EMI Calculator", category: "Finance", component: EmiCalculatorPage },
-  { slug: "fd-calculator", title: "FD Calculator", category: "Finance", component: FdCalculatorPage },
-  { slug: "gst-calculator", title: "GST Calculator", category: "Tax", component: GstCalculatorPage },
-  { slug: "discount-calculator", title: "Discount Calculator", category: "Shopping", component: DiscountCalculatorPage },
-  { slug: "age-calculator", title: "Age Calculator", category: "Utility", component: AgeCalculatorPage },
-  { slug: "bmi-calculator", title: "BMI Calculator", category: "Health", component: BmiCalculatorPage },
+  {
+    slug: "simple-calculator",
+    title: "Simple Calculator",
+    category: "Core",
+    icon: Calculator,
+    component: SimpleCalculatorPage
+  },
+  {
+    slug: "percentage-calculator",
+    title: "Percentage Calculator",
+    category: "Math",
+    icon: Percent,
+    component: PercentageCalculatorPage
+  },
+  {
+    slug: "sip-calculator",
+    title: "SIP Calculator",
+    category: "Finance",
+    icon: PiggyBank,
+    component: SipCalculatorPage
+  },
+  {
+    slug: "emi-calculator",
+    title: "EMI Calculator",
+    category: "Finance",
+    icon: Landmark,
+    component: EmiCalculatorPage
+  },
+  { slug: "fd-calculator", title: "FD Calculator", category: "Finance", icon: Wallet, component: FdCalculatorPage },
+  { slug: "gst-calculator", title: "GST Calculator", category: "Tax", icon: Receipt, component: GstCalculatorPage },
+  {
+    slug: "discount-calculator",
+    title: "Discount Calculator",
+    category: "Shopping",
+    icon: Tag,
+    component: DiscountCalculatorPage
+  },
+  {
+    slug: "age-calculator",
+    title: "Age Calculator",
+    category: "Utility",
+    icon: CalendarDays,
+    component: AgeCalculatorPage
+  },
+  {
+    slug: "bmi-calculator",
+    title: "BMI Calculator",
+    category: "Health",
+    icon: HeartPulse,
+    component: BmiCalculatorPage
+  },
   {
     slug: "loan-calculator",
     title: "Loan Eligibility / Payment Calculator",
     category: "Finance",
+    icon: HandCoins,
     component: LoanCalculatorPage
   },
   {
     slug: "compound-interest-calculator",
     title: "Compound Interest Calculator",
     category: "Finance",
+    icon: TrendingUp,
     component: CompoundInterestCalculatorPage
   },
   {
     slug: "converter",
     title: "Currency / Unit Converter",
     category: "Utility",
+    icon: ArrowRightLeft,
     component: ConverterPage
   }
 ];
 
 function App() {
   const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => getInitialSidebarState());
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const isCompactViewport = useCompactViewport();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem("calcverse-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    window.localStorage.setItem("calcverse-sidebar-collapsed", String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    if (!isCompactViewport) {
+      setIsMobileSidebarOpen(false);
+    }
+  }, [isCompactViewport]);
+
+  const toggleSidebar = () => {
+    if (isCompactViewport) {
+      setIsMobileSidebarOpen((current) => !current);
+      return;
+    }
+
+    setIsSidebarCollapsed((current) => !current);
+  };
+
   return (
-    <div className="shell">
-      <Sidebar theme={theme} onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")} />
+    <div className={`shell${isSidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        isCompactViewport={isCompactViewport}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+        theme={theme}
+      />
       <main className="content">
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route
+            path="/"
+            element={
+              <DashboardPage
+                isCompactViewport={isCompactViewport}
+                isSidebarCollapsed={isSidebarCollapsed}
+                onToggleSidebar={toggleSidebar}
+              />
+            }
+          />
           {calculatorRoutes.map((route) => (
             <Route
               key={route.slug}
               path={`/${route.slug}`}
               element={
-                <PageFrame title={route.title}>
+                <PageFrame
+                  icon={route.icon}
+                  isCompactViewport={isCompactViewport}
+                  isSidebarCollapsed={isSidebarCollapsed}
+                  onToggleSidebar={toggleSidebar}
+                  title={route.title}
+                >
                   <route.component />
                 </PageFrame>
               }
@@ -182,12 +293,27 @@ function App() {
   );
 }
 
-function DashboardPage() {
+function DashboardPage({
+  isCompactViewport,
+  isSidebarCollapsed,
+  onToggleSidebar
+}: {
+  isCompactViewport: boolean;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+}) {
   return (
-    <PageFrame title="Calculators">
+    <PageFrame
+      icon={LayoutGrid}
+      isCompactViewport={isCompactViewport}
+      isSidebarCollapsed={isSidebarCollapsed}
+      onToggleSidebar={onToggleSidebar}
+      title="Calculators"
+    >
       <section className="dashboard-grid">
         {calculatorRoutes.map((route) => (
           <Link className="dashboard-card" key={route.slug} to={`/${route.slug}`}>
+            <route.icon className="card-icon" size={20} strokeWidth={2} />
             <span className="card-category">{route.category}</span>
             <strong>{route.title}</strong>
           </Link>
@@ -197,43 +323,103 @@ function DashboardPage() {
   );
 }
 
-function PageFrame({ title, children }: { title: string; children: ReactNode }) {
+function PageFrame({
+  title,
+  children,
+  icon: Icon,
+  isCompactViewport,
+  isSidebarCollapsed,
+  onToggleSidebar
+}: {
+  title: string;
+  children: ReactNode;
+  icon: LucideIcon;
+  isCompactViewport: boolean;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
+}) {
+  const ToggleIcon = isCompactViewport ? Menu : isSidebarCollapsed ? PanelLeftOpen : PanelLeftClose;
+
   return (
     <section className="page-stack">
       <header className="page-header">
-        <h1>{title}</h1>
+        <div className="page-header-main">
+          <button aria-label="Toggle sidebar" className="sidebar-toggle" onClick={onToggleSidebar} type="button">
+            <ToggleIcon size={18} strokeWidth={2.2} />
+          </button>
+          <div className="page-title-wrap">
+            <Icon className="page-title-icon" size={18} strokeWidth={2.1} />
+            <h1>{title}</h1>
+          </div>
+        </div>
       </header>
       {children}
     </section>
   );
 }
 
-function Sidebar({ onToggleTheme, theme }: { onToggleTheme: () => void; theme: Theme }) {
+function Sidebar({
+  isCollapsed,
+  isCompactViewport,
+  isOpen,
+  onClose,
+  onToggleTheme,
+  theme
+}: {
+  isCollapsed: boolean;
+  isCompactViewport: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onToggleTheme: () => void;
+  theme: Theme;
+}) {
+  const ThemeIcon = theme === "dark" ? Sun : Moon;
+
   return (
-    <aside className="sidebar">
-      <Link className="brand" to="/">
-        <span className="brand-mark">C</span>
-        <div>
-          <strong>Calcverse</strong>
-          <span>Dashboard</span>
-        </div>
-      </Link>
+    <>
+      {isCompactViewport && isOpen ? (
+        <button aria-label="Close sidebar" className="sidebar-backdrop" onClick={onClose} type="button" />
+      ) : null}
+      <aside className={`sidebar${isCollapsed ? " collapsed" : ""}${isOpen ? " open" : ""}`}>
+        <Link className="brand" to="/">
+          <span className="brand-mark">
+            <Calculator size={18} strokeWidth={2.4} />
+          </span>
+          <div className="brand-copy">
+            <strong>Calcverse</strong>
+            <span>Dashboard</span>
+          </div>
+        </Link>
 
-      <button className="theme-toggle" onClick={onToggleTheme} type="button">
-        {theme === "dark" ? "Light mode" : "Dark mode"}
-      </button>
+        <button className="theme-toggle" onClick={onToggleTheme} type="button">
+          <ThemeIcon size={16} strokeWidth={2.2} />
+          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
 
-      <nav aria-label="Primary" className="nav-list">
-        <NavLink className={({ isActive }) => navClass(isActive)} end to="/">
-          All calculators
-        </NavLink>
-        {calculatorRoutes.map((route) => (
-          <NavLink className={({ isActive }) => navClass(isActive)} key={route.slug} to={`/${route.slug}`}>
-            {route.title}
+        <nav aria-label="Primary" className="nav-list">
+          <NavLink className={({ isActive }) => navClass(isActive)} end onClick={isCompactViewport ? onClose : undefined} to="/">
+            <LayoutGrid size={17} strokeWidth={2.1} />
+            <span>All calculators</span>
           </NavLink>
-        ))}
-      </nav>
-    </aside>
+          {calculatorRoutes.map((route) => (
+            <NavLink
+              className={({ isActive }) => navClass(isActive)}
+              key={route.slug}
+              onClick={isCompactViewport ? onClose : undefined}
+              to={`/${route.slug}`}
+            >
+              <route.icon size={17} strokeWidth={2.1} />
+              <span>{route.title}</span>
+            </NavLink>
+          ))}
+        </nav>
+        {isCompactViewport && isOpen ? (
+          <button className="sidebar-close" onClick={onClose} type="button">
+            Close
+          </button>
+        ) : null}
+      </aside>
+    </>
   );
 }
 
@@ -1058,6 +1244,22 @@ function navClass(isActive: boolean) {
 function getInitialTheme(): Theme {
   const saved = window.localStorage.getItem("calcverse-theme");
   return saved === "light" || saved === "dark" ? saved : "dark";
+}
+
+function getInitialSidebarState() {
+  return window.localStorage.getItem("calcverse-sidebar-collapsed") === "true";
+}
+
+function useCompactViewport() {
+  const [isCompactViewport, setIsCompactViewport] = useState(() => window.innerWidth <= 1100);
+
+  useEffect(() => {
+    const onResize = () => setIsCompactViewport(window.innerWidth <= 1100);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return isCompactViewport;
 }
 
 function toNumber(value: string) {
