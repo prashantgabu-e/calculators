@@ -424,7 +424,7 @@ function Sidebar({
 }
 
 function SimpleCalculatorPage() {
-  const [expression, setExpression] = useState("12+8/2");
+  const [expression, setExpression] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -518,19 +518,19 @@ function SimpleCalculatorPage() {
 }
 
 function PercentageCalculatorPage() {
-  const [expression, setExpression] = useState("25% of 200");
-  const [percentOf, setPercentOf] = useState("18");
-  const [percentBase, setPercentBase] = useState("2500");
-  const [portion, setPortion] = useState("45");
-  const [whole, setWhole] = useState("180");
-  const [knownValue, setKnownValue] = useState("45");
-  const [knownPercent, setKnownPercent] = useState("18");
-  const [fromValue, setFromValue] = useState("120");
-  const [toValue, setToValue] = useState("156");
-  const [percentValue, setPercentValue] = useState("12.5");
-  const [fractionNumerator, setFractionNumerator] = useState("1");
-  const [fractionDenominator, setFractionDenominator] = useState("8");
-  const [decimalValue, setDecimalValue] = useState("0.125");
+  const [expression, setExpression] = useState("");
+  const [percentOf, setPercentOf] = useState("");
+  const [percentBase, setPercentBase] = useState("");
+  const [portion, setPortion] = useState("");
+  const [whole, setWhole] = useState("");
+  const [knownValue, setKnownValue] = useState("");
+  const [knownPercent, setKnownPercent] = useState("");
+  const [fromValue, setFromValue] = useState("");
+  const [toValue, setToValue] = useState("");
+  const [percentValue, setPercentValue] = useState("");
+  const [fractionNumerator, setFractionNumerator] = useState("");
+  const [fractionDenominator, setFractionDenominator] = useState("");
+  const [decimalValue, setDecimalValue] = useState("");
 
   const expressionResult = evaluatePercentageExpression(expression);
   const percentOfResult = (toNumber(percentOf) * toNumber(percentBase)) / 100;
@@ -556,7 +556,12 @@ function PercentageCalculatorPage() {
           <label className="field compact grow">
             <span>Expression</span>
             <div className="input-shell">
-              <input onChange={(event) => setExpression(event.target.value)} type="text" value={expression} />
+              <input
+                onChange={(event) => setExpression(event.target.value)}
+                placeholder="25% of 200"
+                type="text"
+                value={expression}
+              />
             </div>
           </label>
           <div className="formula-equals">=</div>
@@ -572,14 +577,26 @@ function PercentageCalculatorPage() {
           <label className="field compact">
             <span>What is</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setPercentOf(event.target.value)} type="text" value={percentOf} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setPercentOf(event.target.value)}
+                placeholder="18"
+                type="text"
+                value={percentOf}
+              />
             </div>
           </label>
           <div className="formula-text">% of</div>
           <label className="field compact">
             <span>Value</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setPercentBase(event.target.value)} type="text" value={percentBase} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setPercentBase(event.target.value)}
+                placeholder="2500"
+                type="text"
+                value={percentBase}
+              />
             </div>
           </label>
           <div className="formula-equals">=</div>
@@ -595,14 +612,26 @@ function PercentageCalculatorPage() {
           <label className="field compact">
             <span>Value</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setPortion(event.target.value)} type="text" value={portion} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setPortion(event.target.value)}
+                placeholder="45"
+                type="text"
+                value={portion}
+              />
             </div>
           </label>
           <div className="formula-text">is what % of</div>
           <label className="field compact">
             <span>Total</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setWhole(event.target.value)} type="text" value={whole} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setWhole(event.target.value)}
+                placeholder="180"
+                type="text"
+                value={whole}
+              />
             </div>
           </label>
           <div className="formula-equals">=</div>
@@ -618,14 +647,26 @@ function PercentageCalculatorPage() {
           <label className="field compact">
             <span>Value</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setKnownValue(event.target.value)} type="text" value={knownValue} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setKnownValue(event.target.value)}
+                placeholder="45"
+                type="text"
+                value={knownValue}
+              />
             </div>
           </label>
           <div className="formula-text">is</div>
           <label className="field compact">
             <span>Percent</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setKnownPercent(event.target.value)} type="text" value={knownPercent} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setKnownPercent(event.target.value)}
+                placeholder="18"
+                type="text"
+                value={knownPercent}
+              />
               <small>%</small>
             </div>
           </label>
@@ -644,14 +685,26 @@ function PercentageCalculatorPage() {
           <label className="field compact">
             <span>From</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setFromValue(event.target.value)} type="text" value={fromValue} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setFromValue(event.target.value)}
+                placeholder="120"
+                type="text"
+                value={fromValue}
+              />
             </div>
           </label>
           <div className="formula-text">to</div>
           <label className="field compact">
             <span>To</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setToValue(event.target.value)} type="text" value={toValue} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setToValue(event.target.value)}
+                placeholder="156"
+                type="text"
+                value={toValue}
+              />
             </div>
           </label>
           <div className="formula-equals">=</div>
@@ -667,7 +720,13 @@ function PercentageCalculatorPage() {
           <div className="converter-column">
             <span className="converter-title">Percent</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setPercentValue(event.target.value)} type="text" value={percentValue} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setPercentValue(event.target.value)}
+                placeholder="12.5"
+                type="text"
+                value={percentValue}
+              />
               <small>%</small>
             </div>
             <div className="result-inline block">
@@ -684,13 +743,20 @@ function PercentageCalculatorPage() {
             <span className="converter-title">Fraction</span>
             <div className="fraction-stack">
               <div className="input-shell">
-                <input inputMode="decimal" onChange={(event) => setFractionNumerator(event.target.value)} type="text" value={fractionNumerator} />
+                <input
+                  inputMode="decimal"
+                  onChange={(event) => setFractionNumerator(event.target.value)}
+                  placeholder="1"
+                  type="text"
+                  value={fractionNumerator}
+                />
               </div>
               <div className="fraction-divider" />
               <div className="input-shell">
                 <input
                   inputMode="decimal"
                   onChange={(event) => setFractionDenominator(event.target.value)}
+                  placeholder="8"
                   type="text"
                   value={fractionDenominator}
                 />
@@ -709,7 +775,13 @@ function PercentageCalculatorPage() {
           <div className="converter-column">
             <span className="converter-title">Decimal</span>
             <div className="input-shell">
-              <input inputMode="decimal" onChange={(event) => setDecimalValue(event.target.value)} type="text" value={decimalValue} />
+              <input
+                inputMode="decimal"
+                onChange={(event) => setDecimalValue(event.target.value)}
+                placeholder="0.125"
+                type="text"
+                value={decimalValue}
+              />
             </div>
             <div className="result-inline block">
               <span>Percent</span>
@@ -727,9 +799,9 @@ function PercentageCalculatorPage() {
 }
 
 function SipCalculatorPage() {
-  const [monthlyInvestment, setMonthlyInvestment] = useState("5000");
-  const [annualReturn, setAnnualReturn] = useState("12");
-  const [years, setYears] = useState("10");
+  const [monthlyInvestment, setMonthlyInvestment] = useState("");
+  const [annualReturn, setAnnualReturn] = useState("");
+  const [years, setYears] = useState("");
 
   const monthly = toNumber(monthlyInvestment);
   const rate = toNumber(annualReturn) / 100 / 12;
@@ -744,9 +816,9 @@ function SipCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Monthly investment" onChange={setMonthlyInvestment} value={monthlyInvestment} />
-          <Field label="Expected return" onChange={setAnnualReturn} suffix="%" value={annualReturn} />
-          <Field label="Years" onChange={setYears} value={years} />
+          <Field label="Monthly investment" onChange={setMonthlyInvestment} placeholder="5000" value={monthlyInvestment} />
+          <Field label="Expected return" onChange={setAnnualReturn} placeholder="12" suffix="%" value={annualReturn} />
+          <Field label="Years" onChange={setYears} placeholder="10" value={years} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -761,9 +833,9 @@ function SipCalculatorPage() {
 }
 
 function EmiCalculatorPage() {
-  const [principal, setPrincipal] = useState("1000000");
-  const [annualRate, setAnnualRate] = useState("8.5");
-  const [years, setYears] = useState("5");
+  const [principal, setPrincipal] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [years, setYears] = useState("");
 
   const payment = calculateEmi(toNumber(principal), toNumber(annualRate), toNumber(years));
   const totalPayment = payment.emi * payment.months;
@@ -772,9 +844,9 @@ function EmiCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Loan amount" onChange={setPrincipal} value={principal} />
-          <Field label="Interest rate" onChange={setAnnualRate} suffix="%" value={annualRate} />
-          <Field label="Tenure" onChange={setYears} suffix="Years" value={years} />
+          <Field label="Loan amount" onChange={setPrincipal} placeholder="1000000" value={principal} />
+          <Field label="Interest rate" onChange={setAnnualRate} placeholder="8.5" suffix="%" value={annualRate} />
+          <Field label="Tenure" onChange={setYears} placeholder="5" suffix="Years" value={years} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -789,9 +861,9 @@ function EmiCalculatorPage() {
 }
 
 function FdCalculatorPage() {
-  const [deposit, setDeposit] = useState("250000");
-  const [annualRate, setAnnualRate] = useState("7");
-  const [years, setYears] = useState("3");
+  const [deposit, setDeposit] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [years, setYears] = useState("");
   const [frequency, setFrequency] = useState<FrequencyKey>("quarterly");
 
   const principal = toNumber(deposit);
@@ -804,9 +876,9 @@ function FdCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Deposit amount" onChange={setDeposit} value={deposit} />
-          <Field label="Interest rate" onChange={setAnnualRate} suffix="%" value={annualRate} />
-          <Field label="Years" onChange={setYears} value={years} />
+          <Field label="Deposit amount" onChange={setDeposit} placeholder="250000" value={deposit} />
+          <Field label="Interest rate" onChange={setAnnualRate} placeholder="7" suffix="%" value={annualRate} />
+          <Field label="Years" onChange={setYears} placeholder="3" value={years} />
           <SelectField
             label="Compounding"
             onChange={(value) => setFrequency(value as FrequencyKey)}
@@ -830,8 +902,8 @@ function FdCalculatorPage() {
 }
 
 function GstCalculatorPage() {
-  const [amount, setAmount] = useState("1000");
-  const [gstRate, setGstRate] = useState("18");
+  const [amount, setAmount] = useState("");
+  const [gstRate, setGstRate] = useState("");
   const [mode, setMode] = useState<"exclusive" | "inclusive">("exclusive");
 
   const baseAmount = toNumber(amount);
@@ -858,9 +930,10 @@ function GstCalculatorPage() {
           <Field
             label={mode === "exclusive" ? "Base amount" : "Total amount"}
             onChange={setAmount}
+            placeholder="1000"
             value={amount}
           />
-          <Field label="GST rate" onChange={setGstRate} suffix="%" value={gstRate} />
+          <Field label="GST rate" onChange={setGstRate} placeholder="18" suffix="%" value={gstRate} />
           <SegmentedControl
             label="Mode"
             onChange={(value) => setMode(value as "exclusive" | "inclusive")}
@@ -878,8 +951,8 @@ function GstCalculatorPage() {
 }
 
 function DiscountCalculatorPage() {
-  const [price, setPrice] = useState("2499");
-  const [discount, setDiscount] = useState("20");
+  const [price, setPrice] = useState("");
+  const [discount, setDiscount] = useState("");
 
   const original = toNumber(price);
   const percent = toNumber(discount) / 100;
@@ -890,8 +963,8 @@ function DiscountCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Original price" onChange={setPrice} value={price} />
-          <Field label="Discount" onChange={setDiscount} suffix="%" value={discount} />
+          <Field label="Original price" onChange={setPrice} placeholder="2499" value={price} />
+          <Field label="Discount" onChange={setDiscount} placeholder="20" suffix="%" value={discount} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -906,16 +979,16 @@ function DiscountCalculatorPage() {
 }
 
 function AgeCalculatorPage() {
-  const [birthDate, setBirthDate] = useState("1998-06-15");
-  const [targetDate, setTargetDate] = useState(TODAY);
+  const [birthDate, setBirthDate] = useState("");
+  const [targetDate, setTargetDate] = useState("");
   const age = calculateAge(birthDate, targetDate);
 
   return (
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <DateField label="Birth date" onChange={setBirthDate} value={birthDate} />
-          <DateField label="Age on" onChange={setTargetDate} value={targetDate} />
+          <DateField label="Birth date" onChange={setBirthDate} placeholder="1998-06-15" value={birthDate} />
+          <DateField label="Age on" onChange={setTargetDate} placeholder={TODAY} value={targetDate} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -931,8 +1004,8 @@ function AgeCalculatorPage() {
 }
 
 function BmiCalculatorPage() {
-  const [weight, setWeight] = useState("68");
-  const [height, setHeight] = useState("172");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
 
   const weightValue = toNumber(weight);
   const heightMeters = toNumber(height) / 100;
@@ -942,8 +1015,8 @@ function BmiCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Weight" onChange={setWeight} suffix="kg" value={weight} />
-          <Field label="Height" onChange={setHeight} suffix="cm" value={height} />
+          <Field label="Weight" onChange={setWeight} placeholder="68" suffix="kg" value={weight} />
+          <Field label="Height" onChange={setHeight} placeholder="172" suffix="cm" value={height} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -957,11 +1030,11 @@ function BmiCalculatorPage() {
 }
 
 function LoanCalculatorPage() {
-  const [loanAmount, setLoanAmount] = useState("1500000");
-  const [interestRate, setInterestRate] = useState("9");
-  const [tenureYears, setTenureYears] = useState("8");
-  const [monthlyIncome, setMonthlyIncome] = useState("90000");
-  const [existingObligations, setExistingObligations] = useState("15000");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureYears, setTenureYears] = useState("");
+  const [monthlyIncome, setMonthlyIncome] = useState("");
+  const [existingObligations, setExistingObligations] = useState("");
 
   const payment = calculateEmi(toNumber(loanAmount), toNumber(interestRate), toNumber(tenureYears));
   const maxAffordableEmi = Math.max(toNumber(monthlyIncome) * 0.5 - toNumber(existingObligations), 0);
@@ -972,9 +1045,9 @@ function LoanCalculatorPage() {
       <article className="panel">
         <h2 className="panel-title">Loan payment</h2>
         <FormGrid>
-          <Field label="Loan amount" onChange={setLoanAmount} value={loanAmount} />
-          <Field label="Interest rate" onChange={setInterestRate} suffix="%" value={interestRate} />
-          <Field label="Years" onChange={setTenureYears} value={tenureYears} />
+          <Field label="Loan amount" onChange={setLoanAmount} placeholder="1500000" value={loanAmount} />
+          <Field label="Interest rate" onChange={setInterestRate} placeholder="9" suffix="%" value={interestRate} />
+          <Field label="Years" onChange={setTenureYears} placeholder="8" value={tenureYears} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -987,10 +1060,10 @@ function LoanCalculatorPage() {
       <article className="panel">
         <h2 className="panel-title">Loan eligibility</h2>
         <FormGrid>
-          <Field label="Monthly income" onChange={setMonthlyIncome} value={monthlyIncome} />
-          <Field label="Existing EMIs" onChange={setExistingObligations} value={existingObligations} />
-          <Field label="Interest rate" onChange={setInterestRate} suffix="%" value={interestRate} />
-          <Field label="Years" onChange={setTenureYears} value={tenureYears} />
+          <Field label="Monthly income" onChange={setMonthlyIncome} placeholder="90000" value={monthlyIncome} />
+          <Field label="Existing EMIs" onChange={setExistingObligations} placeholder="15000" value={existingObligations} />
+          <Field label="Interest rate" onChange={setInterestRate} placeholder="9" suffix="%" value={interestRate} />
+          <Field label="Years" onChange={setTenureYears} placeholder="8" value={tenureYears} />
         </FormGrid>
       </article>
       <ResultPanel
@@ -1004,10 +1077,10 @@ function LoanCalculatorPage() {
 }
 
 function CompoundInterestCalculatorPage() {
-  const [principal, setPrincipal] = useState("100000");
-  const [annualRate, setAnnualRate] = useState("10");
-  const [years, setYears] = useState("7");
-  const [contribution, setContribution] = useState("5000");
+  const [principal, setPrincipal] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [years, setYears] = useState("");
+  const [contribution, setContribution] = useState("");
   const [frequency, setFrequency] = useState<FrequencyKey>("monthly");
 
   const p = toNumber(principal);
@@ -1029,10 +1102,10 @@ function CompoundInterestCalculatorPage() {
     <section className="calculator-grid">
       <article className="panel">
         <FormGrid>
-          <Field label="Principal" onChange={setPrincipal} value={principal} />
-          <Field label="Interest rate" onChange={setAnnualRate} suffix="%" value={annualRate} />
-          <Field label="Years" onChange={setYears} value={years} />
-          <Field label="Contribution per period" onChange={setContribution} value={contribution} />
+          <Field label="Principal" onChange={setPrincipal} placeholder="100000" value={principal} />
+          <Field label="Interest rate" onChange={setAnnualRate} placeholder="10" suffix="%" value={annualRate} />
+          <Field label="Years" onChange={setYears} placeholder="7" value={years} />
+          <Field label="Contribution per period" onChange={setContribution} placeholder="5000" value={contribution} />
           <SelectField
             label="Compounding"
             onChange={(value) => setFrequency(value as FrequencyKey)}
@@ -1059,7 +1132,7 @@ function ConverterPage() {
   const [category, setCategory] = useState<ConverterCategoryKey>("length");
   const [fromUnit, setFromUnit] = useState("meter");
   const [toUnit, setToUnit] = useState("kilometer");
-  const [value, setValue] = useState("1");
+  const [value, setValue] = useState("");
 
   useEffect(() => {
     const entries = Object.keys(converterOptions[category]);
@@ -1090,7 +1163,7 @@ function ConverterPage() {
             }))}
             value={category}
           />
-          <Field label="Value" onChange={setValue} value={value} />
+          <Field label="Value" onChange={setValue} placeholder="1" value={value} />
           <SelectField
             label="From"
             onChange={setFromUnit}
@@ -1129,11 +1202,13 @@ function FormGrid({ children }: { children: ReactNode }) {
 function Field({
   label,
   onChange,
+  placeholder,
   suffix,
   value
 }: {
   label: string;
   onChange: (value: string) => void;
+  placeholder?: string;
   suffix?: string;
   value: string;
 }) {
@@ -1141,7 +1216,13 @@ function Field({
     <label className="field">
       <span>{label}</span>
       <div className="input-shell">
-        <input inputMode="decimal" onChange={(event) => onChange(event.target.value)} type="text" value={value} />
+        <input
+          inputMode="decimal"
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          type="text"
+          value={value}
+        />
         {suffix ? <small>{suffix}</small> : null}
       </div>
     </label>
@@ -1151,17 +1232,19 @@ function Field({
 function DateField({
   label,
   onChange,
+  placeholder,
   value
 }: {
   label: string;
   onChange: (value: string) => void;
+  placeholder?: string;
   value: string;
 }) {
   return (
     <label className="field">
       <span>{label}</span>
       <div className="input-shell">
-        <input onChange={(event) => onChange(event.target.value)} type="date" value={value} />
+        <input onChange={(event) => onChange(event.target.value)} placeholder={placeholder} type="date" value={value} />
       </div>
     </label>
   );
