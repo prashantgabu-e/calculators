@@ -1471,7 +1471,7 @@ function groupCalculatorRoutes() {
 
 function getInitialTheme(): Theme {
   const saved = window.localStorage.getItem("calcverse-theme");
-  return saved === "light" || saved === "dark" ? saved : "dark";
+  return saved === "light" || saved === "dark" ? saved : "light";
 }
 
 function getInitialSidebarState() {
