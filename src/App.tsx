@@ -1,9 +1,16 @@
 import {
   ArrowRightLeft,
+  Banknote,
   Calculator,
   CalendarDays,
+  CalendarRange,
+  Car,
+  CircleDollarSign,
+  CreditCard,
+  Flame,
   HandCoins,
   HeartPulse,
+  Home,
   Landmark,
   LayoutGrid,
   Menu,
@@ -12,7 +19,10 @@ import {
   PanelLeftOpen,
   Percent,
   PiggyBank,
+  ReceiptIndianRupee,
+  ReceiptText,
   Receipt,
+  Split,
   Sun,
   Tag,
   TrendingUp,
@@ -21,6 +31,20 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
+import {
+  CalorieCalculatorPage,
+  CreditCardEmiCalculatorPage,
+  DateDifferenceCalculatorPage,
+  FuelCostCalculatorPage,
+  GstReverseCalculatorPage,
+  IncomeTaxCalculatorPage,
+  InflationCalculatorPage,
+  LumpsumCalculatorPage,
+  PpfEpfCalculatorPage,
+  RentBuyCalculatorPage,
+  SalaryCalculatorPage,
+  SplitBillCalculatorPage
+} from "./extraCalculators";
 
 type Theme = "dark" | "light";
 type CalculatorRoute = {
@@ -210,6 +234,90 @@ const calculatorRoutes: CalculatorRoute[] = [
     component: CompoundInterestCalculatorPage
   },
   {
+    slug: "income-tax-calculator",
+    title: "Income Tax Calculator",
+    category: "Tax",
+    icon: ReceiptIndianRupee,
+    component: IncomeTaxCalculatorPage
+  },
+  {
+    slug: "salary-calculator",
+    title: "Salary / Take-home Calculator",
+    category: "Finance",
+    icon: Banknote,
+    component: SalaryCalculatorPage
+  },
+  {
+    slug: "lumpsum-calculator",
+    title: "Mutual Fund Lumpsum Calculator",
+    category: "Finance",
+    icon: CircleDollarSign,
+    component: LumpsumCalculatorPage
+  },
+  {
+    slug: "ppf-epf-calculator",
+    title: "PPF / EPF Calculator",
+    category: "Finance",
+    icon: Landmark,
+    component: PpfEpfCalculatorPage
+  },
+  {
+    slug: "credit-card-emi-calculator",
+    title: "Credit Card EMI Calculator",
+    category: "Finance",
+    icon: CreditCard,
+    component: CreditCardEmiCalculatorPage
+  },
+  {
+    slug: "rent-vs-buy-calculator",
+    title: "Rent vs Buy Calculator",
+    category: "Finance",
+    icon: Home,
+    component: RentBuyCalculatorPage
+  },
+  {
+    slug: "inflation-calculator",
+    title: "Inflation Calculator",
+    category: "Finance",
+    icon: TrendingUp,
+    component: InflationCalculatorPage
+  },
+  {
+    slug: "fuel-cost-calculator",
+    title: "Fuel Cost Calculator",
+    category: "Everyday",
+    icon: Car,
+    component: FuelCostCalculatorPage
+  },
+  {
+    slug: "split-bill-calculator",
+    title: "Split Bill Calculator",
+    category: "Everyday",
+    icon: Split,
+    component: SplitBillCalculatorPage
+  },
+  {
+    slug: "date-difference-calculator",
+    title: "Date Difference / Working Days",
+    category: "Utility",
+    icon: CalendarRange,
+    component: DateDifferenceCalculatorPage
+  },
+  {
+    slug: "calorie-calculator",
+    title: "Calorie / BMR Calculator",
+    category: "Health",
+    icon: Flame,
+    component: CalorieCalculatorPage
+  },
+  {
+    slug: "gst-reverse-calculator",
+    title: "GST Reverse Calculator",
+    category: "Tax",
+    icon: ReceiptText,
+    component: GstReverseCalculatorPage
+  },
+  {
     slug: "converter",
     title: "Currency / Unit Converter",
     category: "Utility",
@@ -289,7 +397,31 @@ function App() {
           ))}
         </Routes>
       </main>
+      <MobileBottomNav onOpenMenu={() => setIsMobileSidebarOpen(true)} />
     </div>
+  );
+}
+
+function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+  return (
+    <nav aria-label="Mobile navigation" className="mobile-bottom-nav">
+      <NavLink className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`} end to="/">
+        <LayoutGrid size={19} strokeWidth={2.1} />
+        <span>Explore</span>
+      </NavLink>
+      <NavLink className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`} to="/simple-calculator">
+        <Calculator size={19} strokeWidth={2.1} />
+        <span>Calculate</span>
+      </NavLink>
+      <NavLink className={({ isActive }) => `bottom-nav-item${isActive ? " active" : ""}`} to="/sip-calculator">
+        <PiggyBank size={19} strokeWidth={2.1} />
+        <span>Plan</span>
+      </NavLink>
+      <button aria-label="Open all calculators" className="bottom-nav-item" onClick={onOpenMenu} type="button">
+        <Menu size={20} strokeWidth={2.1} />
+        <span>More</span>
+      </button>
+    </nav>
   );
 }
 
@@ -400,16 +532,21 @@ function Sidebar({
             <LayoutGrid size={17} strokeWidth={2.1} />
             <span>All calculators</span>
           </NavLink>
-          {calculatorRoutes.map((route) => (
-            <NavLink
-              className={({ isActive }) => navClass(isActive)}
-              key={route.slug}
-              onClick={isCompactViewport ? onClose : undefined}
-              to={`/${route.slug}`}
-            >
-              <route.icon size={17} strokeWidth={2.1} />
-              <span>{route.title}</span>
-            </NavLink>
+          {Object.entries(groupCalculatorRoutes()).map(([category, routes]) => (
+            <div className="nav-group" key={category}>
+              <span className="nav-group-title">{category}</span>
+              {routes.map((route) => (
+                <NavLink
+                  className={({ isActive }) => navClass(isActive)}
+                  key={route.slug}
+                  onClick={isCompactViewport ? onClose : undefined}
+                  to={`/${route.slug}`}
+                >
+                  <route.icon size={17} strokeWidth={2.1} />
+                  <span>{route.title}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         {isCompactViewport && isOpen ? (
@@ -1321,6 +1458,15 @@ function ResultPanel({ items }: { items: ResultItem[] }) {
 
 function navClass(isActive: boolean) {
   return `nav-item${isActive ? " active" : ""}`;
+}
+
+function groupCalculatorRoutes() {
+  const order = ["Core", "Finance", "Tax", "Everyday", "Math", "Shopping", "Health", "Utility"];
+  return order.reduce<Record<string, CalculatorRoute[]>>((groups, category) => {
+    const routes = calculatorRoutes.filter((route) => route.category === category);
+    if (routes.length) groups[category] = routes;
+    return groups;
+  }, {});
 }
 
 function getInitialTheme(): Theme {

@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
-  base: "/calculators/",
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/calculators/" : "/",
   plugins: [react()],
   build: {
     outDir: "docs"
   }
-});
+}));
