@@ -8,15 +8,56 @@ function Results({ children }: { children: ReactNode }) { return <article classN
 function Result({ label, value }: { label: string; value: string }) { return <div className="result-card"><span>{label}</span><strong>{value}</strong></div>; }
 function Layout({ title, children, results }: { title: string; children: ReactNode; results: ReactNode }) { return <section className="calculator-grid"><article className="panel"><h2 className="panel-title">{title}</h2><div className="form-grid">{children}</div></article><Results>{results}</Results></section>; }
 
+type TaxRegime = "new" | "old";
+type AgeBand = "regular" | "senior" | "superSenior";
+
+const newRegimeSlabs: Array<[number, number]> = [[400000, 0], [800000, .05], [1200000, .1], [1600000, .15], [2000000, .2], [2400000, .25], [Infinity, .3]];
+const oldRegimeSlabs: Record<AgeBand, Array<[number, number]>> = {
+  regular: [[250000, 0], [500000, .05], [1000000, .2], [Infinity, .3]],
+  senior: [[300000, 0], [500000, .05], [1000000, .2], [Infinity, .3]],
+  superSenior: [[500000, 0], [1000000, .2], [Infinity, .3]]
+};
+
 function slabTax(income: number, slabs: Array<[number, number]>) { let previous = 0, tax = 0; for (const [limit, rate] of slabs) { tax += Math.max(0, Math.min(income, limit) - previous) * rate; previous = limit; if (income <= limit) break; } return tax; }
+function cap(value: number, limit: number) { return Math.min(Math.max(value, 0), limit); }
+function surchargeRate(income: number, regime: TaxRegime) { if (income > 50000000) return regime === "old" ? .37 : .25; if (income > 20000000) return .25; if (income > 10000000) return .15; if (income > 5000000) return .1; return 0; }
+function taxBeforeCess(taxable: number, regime: TaxRegime, age: AgeBand) {
+  const baseTax = slabTax(taxable, regime === "new" ? newRegimeSlabs : oldRegimeSlabs[age]);
+  const rebateLimit = regime === "new" ? 1200000 : 500000;
+  const rebateCap = regime === "new" ? 60000 : 12500;
+  const rebate = taxable <= rebateLimit ? Math.min(baseTax, rebateCap) : 0;
+  const taxAfterRebate = Math.max(0, baseTax - rebate);
+  return { baseTax, rebate, taxAfterRebate };
+}
+function taxWithSurchargeRelief(taxable: number, regime: TaxRegime, age: AgeBand) {
+  const { baseTax, rebate, taxAfterRebate } = taxBeforeCess(taxable, regime, age);
+  const rate = surchargeRate(taxable, regime);
+  let taxPlusSurcharge = taxAfterRebate * (1 + rate);
+  const thresholds = regime === "old" ? [5000000, 10000000, 20000000, 50000000] : [5000000, 10000000, 20000000];
+  for (const threshold of thresholds) {
+    if (taxable > threshold) {
+      const thresholdTax = taxBeforeCess(threshold, regime, age).taxAfterRebate;
+      const thresholdTotal = thresholdTax * (1 + surchargeRate(threshold, regime));
+      taxPlusSurcharge = Math.min(taxPlusSurcharge, thresholdTotal + taxable - threshold);
+    }
+  }
+  const surcharge = Math.max(0, taxPlusSurcharge - taxAfterRebate);
+  const cess = taxPlusSurcharge * .04;
+  return { taxable, baseTax, rebate, surcharge, cess, total: taxPlusSurcharge + cess };
+}
 
 export function IncomeTaxCalculatorPage() {
-  const [income, setIncome] = useState(""), [deductions, setDeductions] = useState("");
-  const gross = n(income), taxableNew = Math.max(0, gross - 75000), taxableOld = Math.max(0, gross - 50000 - n(deductions));
-  const newBase = slabTax(taxableNew, [[400000, 0], [800000, .05], [1200000, .1], [1600000, .15], [2000000, .2], [2400000, .25], [Infinity, .3]]);
-  const newRebate = taxableNew <= 1200000 ? Math.min(newBase, 60000) : Math.max(0, Math.min(60000, newBase - (taxableNew - 1200000)));
-  const newTax = (newBase - newRebate) * 1.04, oldBase = slabTax(taxableOld, [[250000, 0], [500000, .05], [1000000, .2], [Infinity, .3]]), oldTax = (oldBase - (taxableOld <= 500000 ? Math.min(oldBase, 12500) : 0)) * 1.04;
-  return <Layout title="Income & deductions" results={<><Result label="New-regime tax" value={rupees(newTax)} /><Result label="Old-regime tax" value={rupees(oldTax)} /><Result label="Better option" value={newTax <= oldTax ? "New regime" : "Old regime"} /><Result label="Estimated saving" value={rupees(Math.abs(newTax - oldTax))} /></>}><Field label="Annual gross income" value={income} set={setIncome} /><Field label="Old-regime deductions" value={deductions} set={setDeductions} /><div className="calculator-note">AY 2026–27 · resident, salary income. New regime includes ₹75,000 standard deduction, rebate and 4% cess.</div></Layout>;
+  const [salary, setSalary] = useState(""), [otherIncome, setOtherIncome] = useState(""), [age, setAge] = useState<AgeBand>("regular");
+  const [hra, setHra] = useState(""), [section80C, setSection80C] = useState(""), [npsSelf, setNpsSelf] = useState(""), [medical, setMedical] = useState("");
+  const [homeLoan, setHomeLoan] = useState(""), [otherOldDeductions, setOtherOldDeductions] = useState(""), [employerNps, setEmployerNps] = useState("");
+  const gross = n(salary) + n(otherIncome);
+  const employerNpsAllowed = cap(n(employerNps), n(salary) * .14);
+  const oldDeductions = 50000 + n(hra) + cap(n(section80C), 150000) + cap(n(npsSelf), 50000) + cap(n(medical), 100000) + cap(n(homeLoan), 200000) + n(otherOldDeductions) + employerNpsAllowed;
+  const newDeductions = 75000 + employerNpsAllowed;
+  const oldTax = taxWithSurchargeRelief(Math.max(0, gross - oldDeductions), "old", age);
+  const newTax = taxWithSurchargeRelief(Math.max(0, gross - newDeductions), "new", age);
+  const better = newTax.total <= oldTax.total ? "New regime" : "Old regime";
+  return <section className="calculator-grid"><article className="panel"><h2 className="panel-title">Income & deductions</h2><div className="form-grid"><Field label="Annual salary / pension" value={salary} set={setSalary} /><Field label="Other taxable income" value={otherIncome} set={setOtherIncome} /><label className="field"><span>Age category</span><div className="segmented-control"><button className={"segment " + (age === "regular" ? "active" : "")} onClick={() => setAge("regular")} type="button">Below 60</button><button className={"segment " + (age === "senior" ? "active" : "")} onClick={() => setAge("senior")} type="button">60-79</button><button className={"segment " + (age === "superSenior" ? "active" : "")} onClick={() => setAge("superSenior")} type="button">80+</button></div></label><Field label="HRA / other salary exemptions" value={hra} set={setHra} /><Field label="80C investments" value={section80C} set={setSection80C} /><Field label="NPS self 80CCD(1B)" value={npsSelf} set={setNpsSelf} /><Field label="80D medical insurance" value={medical} set={setMedical} /><Field label="Home loan interest" value={homeLoan} set={setHomeLoan} /><Field label="Other old-regime deductions" value={otherOldDeductions} set={setOtherOldDeductions} /><Field label="Employer NPS contribution" value={employerNps} set={setEmployerNps} /><div className="calculator-note">AY 2026-27 estimate for resident individuals. New regime uses ₹4L/₹8L/₹12L/₹16L/₹20L/₹24L slabs, ₹75,000 salary standard deduction, ₹60,000 rebate up to ₹12L taxable income, surcharge and 4% cess. Old regime includes common deductions only; special-rate income such as capital gains is not included.</div></div></article><Results><Result label="New-regime tax" value={rupees(newTax.total)} /><Result label="Old-regime tax" value={rupees(oldTax.total)} /><Result label="Better option" value={better} /><Result label="Estimated saving" value={rupees(Math.abs(newTax.total - oldTax.total))} /><Result label="New taxable income" value={rupees(newTax.taxable)} /><Result label="Old taxable income" value={rupees(oldTax.taxable)} /><Result label="New rebate" value={rupees(newTax.rebate)} /><Result label="Old rebate" value={rupees(oldTax.rebate)} /><Result label="New surcharge + cess" value={rupees(newTax.surcharge + newTax.cess)} /><Result label="Old surcharge + cess" value={rupees(oldTax.surcharge + oldTax.cess)} /></Results></section>;
 }
 
 export function SalaryCalculatorPage() {

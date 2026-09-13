@@ -29,6 +29,7 @@ import {
   Wallet,
   type LucideIcon
 } from "lucide-react";
+import fx from "money";
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import {
@@ -71,8 +72,67 @@ type UnitDefinition = {
   toBase: (value: number) => number;
   fromBase: (value: number) => number;
 };
+type CurrencyRateState = {
+  date: string;
+  isLive: boolean;
+  rate: number;
+  source: string;
+};
+type FrankfurterRateResponse = {
+  date?: string;
+  rate?: number;
+};
 
 const TODAY = "2026-08-29";
+const currencyLabels: Record<string, string> = {
+  USD: "US Dollar",
+  INR: "Indian Rupee",
+  EUR: "Euro",
+  GBP: "British Pound",
+  AED: "UAE Dirham",
+  AUD: "Australian Dollar",
+  CAD: "Canadian Dollar",
+  SGD: "Singapore Dollar",
+  JPY: "Japanese Yen",
+  CNY: "Chinese Yuan",
+  CHF: "Swiss Franc",
+  HKD: "Hong Kong Dollar",
+  NZD: "New Zealand Dollar",
+  SAR: "Saudi Riyal",
+  THB: "Thai Baht",
+  ZAR: "South African Rand"
+};
+const fallbackCurrencyRates: Record<string, number> = {
+  USD: 1,
+  INR: 83.1,
+  EUR: 0.92,
+  GBP: 0.79,
+  AED: 3.67,
+  AUD: 1.52,
+  CAD: 1.36,
+  SGD: 1.35,
+  JPY: 150.2,
+  CNY: 7.2,
+  CHF: 0.88,
+  HKD: 7.82,
+  NZD: 1.64,
+  SAR: 3.75,
+  THB: 35.9,
+  ZAR: 18.7
+};
+const currencyUnits = Object.fromEntries(
+  Object.entries(currencyLabels).map(([code, label]) => {
+    const rate = fallbackCurrencyRates[code];
+    return [
+      code,
+      {
+        label,
+        toBase: (value: number) => value / rate,
+        fromBase: (value: number) => value * rate
+      }
+    ];
+  })
+) as Record<string, UnitDefinition>;
 
 const CALCULATOR_BUTTONS: CalcButton[] = [
   { label: "C", action: "clear", variant: "ghost" },
@@ -158,13 +218,7 @@ const converterOptions: Record<ConverterCategoryKey, Record<string, UnitDefiniti
       fromBase: (value) => value + 273.15
     }
   },
-  currency: {
-    USD: { label: "US Dollar", toBase: (value) => value, fromBase: (value) => value },
-    INR: { label: "Indian Rupee", toBase: (value) => value / 83.1, fromBase: (value) => value * 83.1 },
-    EUR: { label: "Euro", toBase: (value) => value / 0.92, fromBase: (value) => value * 0.92 },
-    GBP: { label: "British Pound", toBase: (value) => value / 0.79, fromBase: (value) => value * 0.79 },
-    AED: { label: "UAE Dirham", toBase: (value) => value / 3.67, fromBase: (value) => value * 3.67 }
-  }
+  currency: currencyUnits
 };
 
 const calculatorRoutes: CalculatorRoute[] = [
@@ -1269,6 +1323,7 @@ function ConverterPage() {
   const [fromUnit, setFromUnit] = useState("meter");
   const [toUnit, setToUnit] = useState("kilometer");
   const [value, setValue] = useState("");
+  const [currencyRate, setCurrencyRate] = useState<CurrencyRateState>(() => getFallbackCurrencyRate("USD", "INR"));
 
   useEffect(() => {
     const entries = Object.keys(converterOptions[category]);
@@ -1277,9 +1332,76 @@ function ConverterPage() {
   }, [category]);
 
   const units = converterOptions[category];
+  const unitKeys = Object.keys(units);
+  const safeFromUnit = units[fromUnit] ? fromUnit : unitKeys[0];
+  const safeToUnit = units[toUnit] ? toUnit : unitKeys[1] ?? safeFromUnit;
   const input = toNumber(value);
-  const baseValue = units[fromUnit].toBase(input);
-  const converted = units[toUnit].fromBase(baseValue);
+  const converted =
+    category === "currency"
+      ? convertCurrency(input, safeFromUnit, safeToUnit, currencyRate.rate)
+      : units[safeToUnit].fromBase(units[safeFromUnit].toBase(input));
+
+  useEffect(() => {
+    if (category !== "currency") {
+      return;
+    }
+
+    const fallbackRate = getFallbackCurrencyRate(safeFromUnit, safeToUnit);
+    setCurrencyRate(fallbackRate);
+
+    if (safeFromUnit === safeToUnit) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch(`https://api.frankfurter.dev/v2/rate/${safeFromUnit.toLowerCase()}/${safeToUnit.toLowerCase()}`, {
+      signal: controller.signal
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Could not load latest exchange rate");
+        }
+
+        return response.json() as Promise<FrankfurterRateResponse>;
+      })
+      .then((data) => {
+        const rate = Number(data.rate);
+        if (!Number.isFinite(rate) || rate <= 0) {
+          throw new Error("Invalid exchange rate");
+        }
+
+        setCurrencyRate({
+          date: data.date ?? "Latest available",
+          isLive: true,
+          rate,
+          source: "Frankfurter + money.js"
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setCurrencyRate(fallbackRate);
+      });
+
+    return () => controller.abort();
+  }, [category, safeFromUnit, safeToUnit]);
+
+  const resultItems =
+    category === "currency"
+      ? [
+          { label: "Converted value", value: formatCurrencyAmount(converted, safeToUnit) },
+          { label: "Exchange rate", value: `1 ${safeFromUnit} = ${formatValue(currencyRate.rate, 6)} ${safeToUnit}` },
+          { label: "Rate date", value: currencyRate.date },
+          { label: "Source", value: currencyRate.source }
+        ]
+      : [
+          { label: "Converted value", value: formatValue(converted, 6) },
+          { label: "From", value: units[safeFromUnit].label },
+          { label: "To", value: units[safeToUnit].label }
+        ];
 
   return (
     <section className="calculator-grid">
@@ -1307,7 +1429,7 @@ function ConverterPage() {
               label: unit.label,
               value: unitValue
             }))}
-            value={fromUnit}
+            value={safeFromUnit}
           />
           <SelectField
             label="To"
@@ -1316,17 +1438,11 @@ function ConverterPage() {
               label: unit.label,
               value: unitValue
             }))}
-            value={toUnit}
+            value={safeToUnit}
           />
         </FormGrid>
       </article>
-      <ResultPanel
-        items={[
-          { label: "Converted value", value: formatValue(converted, category === "currency" ? 4 : 6) },
-          { label: "From", value: units[fromUnit].label },
-          { label: "To", value: units[toUnit].label }
-        ]}
-      />
+      <ResultPanel items={resultItems} />
     </section>
   );
 }
@@ -1506,6 +1622,44 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 2
   }).format(Number.isFinite(value) ? value : 0);
+}
+
+function formatCurrencyAmount(value: number, currency: string) {
+  return new Intl.NumberFormat("en-IN", {
+    currency,
+    currencyDisplay: "narrowSymbol",
+    maximumFractionDigits: 2,
+    style: "currency"
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function convertCurrency(value: number, from: string, to: string, rate: number) {
+  if (from === to) {
+    return value;
+  }
+
+  fx.base = from;
+  fx.rates = {
+    [from]: 1,
+    [to]: rate
+  };
+  fx.settings = {
+    from,
+    to
+  };
+
+  return fx.convert(value, { from, to });
+}
+
+function getFallbackCurrencyRate(from: string, to: string): CurrencyRateState {
+  const fromRate = fallbackCurrencyRates[from] ?? 1;
+  const toRate = fallbackCurrencyRates[to] ?? 1;
+  return {
+    date: "Offline estimate",
+    isLive: false,
+    rate: from === to ? 1 : toRate / fromRate,
+    source: "Built-in fallback + money.js"
+  };
 }
 
 function formatInteger(value: number) {
