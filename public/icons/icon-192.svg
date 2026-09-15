@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#4f46e5"/><rect x="37" y="37" width="118" height="118" rx="25" fill="#f7f8ff"/><path d="M61 70h25M73.5 57.5v25M111 70h23M122.5 58.5v23M111 119h23M61 119h25M73.5 106.5v25" stroke="#4f46e5" stroke-width="11" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Calculators app icon">
+  <rect width="192" height="192" rx="44" fill="#4f46e5"/>
+  <path fill="#3730a3" opacity=".28" d="M42 24h108a18 18 0 0 1 18 18v108a18 18 0 0 1-18 18H42z"/>
+  <rect x="36" y="30" width="120" height="132" rx="28" fill="#f7f8ff"/>
+  <rect x="52" y="48" width="88" height="34" rx="13" fill="#e7e8ff"/>
+  <path d="M68 65h32" stroke="#3730a3" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="123" cy="65" r="7" fill="#06b6d4"/>
+  <path d="M65 108h22M76 97v22M107 108h22M107 132h22M65 132h22" stroke="#4f46e5" stroke-width="10" stroke-linecap="round"/>
+  <path d="M118 122v20" stroke="#06b6d4" stroke-width="10" stroke-linecap="round"/>
+  <path d="M138 46c7 2 12 8 14 15" stroke="#67e8f9" stroke-width="6" stroke-linecap="round"/>
+</svg>

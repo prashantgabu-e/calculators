@@ -8,6 +8,7 @@ import {
   CircleDollarSign,
   CreditCard,
   Flame,
+  Gem,
   HandCoins,
   HeartPulse,
   Home,
@@ -67,6 +68,20 @@ type ResultItem = {
 };
 type FrequencyKey = "yearly" | "halfYearly" | "quarterly" | "monthly";
 type ConverterCategoryKey = "length" | "weight" | "temperature" | "currency";
+type GstMode = "exclusive" | "inclusive";
+type GstRateKey = "essential" | "gold" | "standard" | "luxury" | "exempt" | "custom";
+type MetalKey = "gold" | "silver";
+type MetalUnitKey = "gram" | "tola" | "sovereign";
+type GoldPurityKey = "24k" | "22k" | "18k";
+type MetalRateState = {
+  asOf: string;
+  goldBuy: number;
+  goldSell: number;
+  silverBuy: number;
+  silverSell: number;
+  source: string;
+  status: "live" | "offline";
+};
 type UnitDefinition = {
   label: string;
   toBase: (value: number) => number;
@@ -119,6 +134,51 @@ const fallbackCurrencyRates: Record<string, number> = {
   SAR: 3.75,
   THB: 35.9,
   ZAR: 18.7
+};
+const GST_RATE_OPTIONS: Record<GstRateKey, { label: string; rate: number }> = {
+  standard: { label: "Goods / services - 18%", rate: 18 },
+  essential: { label: "Essentials - 5%", rate: 5 },
+  gold: { label: "Gold / jewellery - 3%", rate: 3 },
+  luxury: { label: "Luxury / sin goods - 28%", rate: 28 },
+  exempt: { label: "Exempt / nil rated - 0%", rate: 0 },
+  custom: { label: "Custom rate", rate: 18 }
+};
+const GST_CATEGORY_OPTIONS = [
+  { label: "Consumer electronics", hsn: "85", rateKey: "standard" },
+  { label: "Restaurant / food services", hsn: "9963", rateKey: "essential" },
+  { label: "Gold jewellery", hsn: "7113", rateKey: "gold" },
+  { label: "Silver jewellery / articles", hsn: "7113 / 7114", rateKey: "gold" },
+  { label: "Cement", hsn: "2523", rateKey: "luxury" },
+  { label: "Books / education material", hsn: "4901", rateKey: "exempt" },
+  { label: "Professional services", hsn: "9983", rateKey: "standard" }
+] as const;
+const METAL_UNITS: Record<MetalUnitKey, { label: string; grams: number }> = {
+  gram: { label: "Gram", grams: 1 },
+  tola: { label: "Tola", grams: 11.6638038 },
+  sovereign: { label: "Sovereign", grams: 8 }
+};
+const GOLD_PURITIES: Record<GoldPurityKey, { label: string; multiplier: number }> = {
+  "24k": { label: "24K", multiplier: 1 },
+  "22k": { label: "22K", multiplier: 22 / 24 },
+  "18k": { label: "18K", multiplier: 18 / 24 }
+};
+const CITY_RATE_ADJUSTMENTS: Record<string, { label: string; multiplier: number }> = {
+  mumbai: { label: "Mumbai", multiplier: 1 },
+  delhi: { label: "Delhi", multiplier: 1.002 },
+  bangalore: { label: "Bangalore", multiplier: 1.001 },
+  chennai: { label: "Chennai", multiplier: 1.003 },
+  hyderabad: { label: "Hyderabad", multiplier: 1.0015 },
+  kolkata: { label: "Kolkata", multiplier: 1.0005 },
+  ahmedabad: { label: "Ahmedabad", multiplier: 0.999 }
+};
+const fallbackMetalRates: MetalRateState = {
+  asOf: "Offline estimate",
+  goldBuy: 10000,
+  goldSell: 9700,
+  silverBuy: 120,
+  silverSell: 112,
+  source: "Built-in fallback",
+  status: "offline"
 };
 const currencyUnits = Object.fromEntries(
   Object.entries(currencyLabels).map(([code, label]) => {
@@ -251,7 +311,13 @@ const calculatorRoutes: CalculatorRoute[] = [
     component: EmiCalculatorPage
   },
   { slug: "fd-calculator", title: "FD Calculator", category: "Finance", icon: Wallet, component: FdCalculatorPage },
-  { slug: "gst-calculator", title: "GST Calculator", category: "Tax", icon: Receipt, component: GstCalculatorPage },
+  {
+    slug: "gst-calculator",
+    title: "GST Rate Finder + GST Calculator",
+    category: "Tax",
+    icon: Receipt,
+    component: GstCalculatorPage
+  },
   {
     slug: "discount-calculator",
     title: "Discount Calculator",
@@ -370,6 +436,13 @@ const calculatorRoutes: CalculatorRoute[] = [
     category: "Tax",
     icon: ReceiptText,
     component: GstReverseCalculatorPage
+  },
+  {
+    slug: "gold-silver-price-calculator",
+    title: "Gold / Silver Price Calculator",
+    category: "Finance",
+    icon: Gem,
+    component: GoldSilverPriceCalculatorPage
   },
   {
     slug: "converter",
@@ -1093,49 +1166,263 @@ function FdCalculatorPage() {
 
 function GstCalculatorPage() {
   const [amount, setAmount] = useState("");
-  const [gstRate, setGstRate] = useState("");
-  const [mode, setMode] = useState<"exclusive" | "inclusive">("exclusive");
+  const [gstRate, setGstRate] = useState(String(GST_RATE_OPTIONS.standard.rate));
+  const [mode, setMode] = useState<GstMode>("exclusive");
+  const [rateKey, setRateKey] = useState<GstRateKey>("standard");
+  const [categoryIndex, setCategoryIndex] = useState("0");
 
   const baseAmount = toNumber(amount);
-  const rate = toNumber(gstRate) / 100;
+  const selectedCategory = GST_CATEGORY_OPTIONS[Number(categoryIndex)] ?? GST_CATEGORY_OPTIONS[0];
+  const selectedRate = GST_RATE_OPTIONS[rateKey] ?? GST_RATE_OPTIONS.standard;
+  const effectiveRate = rateKey === "custom" ? toNumber(gstRate) : selectedRate.rate;
+  const rate = effectiveRate / 100;
   const exclusiveTax = baseAmount * rate;
-  const inclusiveBase = baseAmount / (1 + rate);
+  const inclusiveBase = rate === 0 ? baseAmount : baseAmount / (1 + rate);
   const inclusiveTax = baseAmount - inclusiveBase;
+  const taxableValue = mode === "exclusive" ? baseAmount : inclusiveBase;
+  const gstAmount = mode === "exclusive" ? exclusiveTax : inclusiveTax;
+  const invoiceValue = mode === "exclusive" ? baseAmount + exclusiveTax : baseAmount;
 
   const items =
     mode === "exclusive"
       ? [
-          { label: "GST amount", value: formatMoney(exclusiveTax) },
-          { label: "Total amount", value: formatMoney(baseAmount + exclusiveTax) }
+          { label: "GST amount", value: formatMoney(gstAmount) },
+          { label: "Total amount", value: formatMoney(invoiceValue) }
         ]
       : [
-          { label: "Base amount", value: formatMoney(inclusiveBase) },
-          { label: "GST included", value: formatMoney(inclusiveTax) }
+          { label: "Base amount", value: formatMoney(taxableValue) },
+          { label: "GST included", value: formatMoney(gstAmount) }
         ];
+
+  const onCategoryChange = (value: string) => {
+    const nextCategory = GST_CATEGORY_OPTIONS[Number(value)] ?? GST_CATEGORY_OPTIONS[0];
+    setCategoryIndex(value);
+    setRateKey(nextCategory.rateKey);
+    setGstRate(String(GST_RATE_OPTIONS[nextCategory.rateKey].rate));
+  };
+
+  const onRateChange = (value: string) => {
+    const nextRateKey = value as GstRateKey;
+    setRateKey(nextRateKey);
+    setGstRate(String(GST_RATE_OPTIONS[nextRateKey]?.rate ?? GST_RATE_OPTIONS.standard.rate));
+  };
 
   return (
     <section className="calculator-grid">
       <article className="panel">
+        <h2 className="panel-title">Rate finder</h2>
         <FormGrid>
+          <SelectField
+            label="Category / HSN"
+            onChange={onCategoryChange}
+            options={GST_CATEGORY_OPTIONS.map((item, index) => ({
+              label: `${item.label} (${item.hsn})`,
+              value: String(index)
+            }))}
+            value={categoryIndex}
+          />
+          <SelectField
+            label="GST slab"
+            onChange={onRateChange}
+            options={Object.entries(GST_RATE_OPTIONS).map(([value, item]) => ({
+              label: item.label,
+              value
+            }))}
+            value={rateKey}
+          />
           <Field
             label={mode === "exclusive" ? "Base amount" : "Total amount"}
             onChange={setAmount}
             placeholder="1000"
             value={amount}
           />
-          <Field label="GST rate" onChange={setGstRate} placeholder="18" suffix="%" value={gstRate} />
+          <Field
+            label="GST rate"
+            onChange={(value) => {
+              setGstRate(value);
+              setRateKey("custom");
+            }}
+            placeholder="18"
+            suffix="%"
+            value={gstRate}
+          />
           <SegmentedControl
             label="Mode"
-            onChange={(value) => setMode(value as "exclusive" | "inclusive")}
+            onChange={(value) => setMode(value as GstMode)}
             options={[
-              { label: "Exclusive", value: "exclusive" },
-              { label: "Inclusive", value: "inclusive" }
+              { label: "Forward", value: "exclusive" },
+              { label: "Reverse", value: "inclusive" }
             ]}
             value={mode}
           />
+          <div className="calculator-note">
+            HSN/category rates are practical presets. Confirm the exact GST treatment for exemptions, composition schemes,
+            mixed supplies, and notified rate changes before filing.
+          </div>
         </FormGrid>
       </article>
-      <ResultPanel items={items} />
+      <ResultPanel
+        items={[
+          { label: "Matched HSN", value: selectedCategory.hsn },
+          { label: "Applied rate", value: `${formatValue(effectiveRate)}%` },
+          ...items,
+          { label: "CGST / SGST", value: `${formatMoney(gstAmount / 2)} each` },
+          { label: "IGST", value: formatMoney(gstAmount) }
+        ]}
+      />
+    </section>
+  );
+}
+
+function GoldSilverPriceCalculatorPage() {
+  const [metal, setMetal] = useState<MetalKey>("gold");
+  const [purity, setPurity] = useState<GoldPurityKey>("22k");
+  const [unit, setUnit] = useState<MetalUnitKey>("gram");
+  const [city, setCity] = useState("mumbai");
+  const [quantity, setQuantity] = useState("");
+  const [makingCharge, setMakingCharge] = useState("");
+  const [makingMode, setMakingMode] = useState<"percent" | "fixed">("percent");
+  const [rateState, setRateState] = useState<MetalRateState>(fallbackMetalRates);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("https://api.oropocket.com/public/prices", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Could not load live metal prices");
+        }
+
+        return response.json() as Promise<{
+          data?: {
+            gold?: { buy?: number; sell?: number };
+            silver?: { buy?: number; sell?: number };
+            timestamp?: string;
+          };
+        }>;
+      })
+      .then((payload) => {
+        const goldBuy = Number(payload.data?.gold?.buy);
+        const goldSell = Number(payload.data?.gold?.sell);
+        const silverBuy = Number(payload.data?.silver?.buy);
+        const silverSell = Number(payload.data?.silver?.sell);
+
+        if (![goldBuy, goldSell, silverBuy, silverSell].every((value) => Number.isFinite(value) && value > 0)) {
+          throw new Error("Invalid metal price payload");
+        }
+
+        setRateState({
+          asOf: payload.data?.timestamp ? new Date(payload.data.timestamp).toLocaleString("en-IN") : "Latest available",
+          goldBuy,
+          goldSell,
+          silverBuy,
+          silverSell,
+          source: "OroPocket public prices",
+          status: "live"
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setRateState(fallbackMetalRates);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const grams = toNumber(quantity) * METAL_UNITS[unit].grams;
+  const cityAdjustment = CITY_RATE_ADJUSTMENTS[city] ?? CITY_RATE_ADJUSTMENTS.mumbai;
+  const purityMultiplier = metal === "gold" ? GOLD_PURITIES[purity].multiplier : 1;
+  const buyRate = (metal === "gold" ? rateState.goldBuy : rateState.silverBuy) * purityMultiplier * cityAdjustment.multiplier;
+  const sellRate = (metal === "gold" ? rateState.goldSell : rateState.silverSell) * purityMultiplier * cityAdjustment.multiplier;
+  const metalValue = grams * buyRate;
+  const makingChargeValue = makingMode === "percent" ? (metalValue * toNumber(makingCharge)) / 100 : toNumber(makingCharge);
+  const taxableValue = metalValue + makingChargeValue;
+  const gst = taxableValue * 0.03;
+  const invoiceValue = taxableValue + gst;
+
+  return (
+    <section className="calculator-grid">
+      <article className="panel">
+        <h2 className="panel-title">Live metal rate</h2>
+        <FormGrid>
+          <SegmentedControl
+            label="Metal"
+            onChange={(value) => setMetal(value as MetalKey)}
+            options={[
+              { label: "Gold", value: "gold" },
+              { label: "Silver", value: "silver" }
+            ]}
+            value={metal}
+          />
+          <SelectField
+            label="City"
+            onChange={setCity}
+            options={Object.entries(CITY_RATE_ADJUSTMENTS).map(([value, item]) => ({
+              label: item.label,
+              value
+            }))}
+            value={city}
+          />
+          {metal === "gold" ? (
+            <SelectField
+              label="Purity"
+              onChange={(value) => setPurity(value as GoldPurityKey)}
+              options={Object.entries(GOLD_PURITIES).map(([value, item]) => ({
+                label: item.label,
+                value
+              }))}
+              value={purity}
+            />
+          ) : null}
+          <Field label="Quantity" onChange={setQuantity} placeholder="10" suffix={METAL_UNITS[unit].label} value={quantity} />
+          <SelectField
+            label="Unit"
+            onChange={(value) => setUnit(value as MetalUnitKey)}
+            options={Object.entries(METAL_UNITS).map(([value, item]) => ({
+              label: item.label,
+              value
+            }))}
+            value={unit}
+          />
+          <Field
+            label="Making charge"
+            onChange={setMakingCharge}
+            placeholder={makingMode === "percent" ? "8" : "1200"}
+            suffix={makingMode === "percent" ? "%" : "INR"}
+            value={makingCharge}
+          />
+          <SegmentedControl
+            label="Making"
+            onChange={(value) => setMakingMode(value as "percent" | "fixed")}
+            options={[
+              { label: "Percent", value: "percent" },
+              { label: "Fixed", value: "fixed" }
+            ]}
+            value={makingMode}
+          />
+          <div className="calculator-note">
+            Rates use a live INR-per-gram quote when available. City values are small indicative adjustments; local jeweller
+            boards can vary by spread, hallmarking, wastage, and making charges.
+          </div>
+        </FormGrid>
+      </article>
+      <ResultPanel
+        items={[
+          { label: "Buy rate / gram", value: formatCurrencyAmount(buyRate, "INR") },
+          { label: "Sell rate / gram", value: formatCurrencyAmount(sellRate, "INR") },
+          { label: "Metal value", value: formatCurrencyAmount(metalValue, "INR") },
+          { label: "Making charge", value: formatCurrencyAmount(makingChargeValue, "INR") },
+          { label: "GST @ 3%", value: formatCurrencyAmount(gst, "INR") },
+          { label: "Estimated invoice", value: formatCurrencyAmount(invoiceValue, "INR") },
+          { label: "Weight", value: `${formatValue(grams, 4)} g` },
+          { label: "Rate status", value: rateState.status === "live" ? "Live" : "Offline" },
+          { label: "Updated", value: rateState.asOf },
+          { label: "Source", value: rateState.source }
+        ]}
+      />
     </section>
   );
 }
