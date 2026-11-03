@@ -73,6 +73,7 @@ type GstRateKey = "essential" | "gold" | "standard" | "luxury" | "exempt" | "cus
 type MetalKey = "gold" | "silver";
 type MetalUnitKey = "gram" | "tola" | "sovereign";
 type GoldPurityKey = "24k" | "22k" | "18k";
+type UnitPriceUomKey = "ml" | "l" | "g" | "kg" | "piece" | "custom";
 type MetalRateState = {
   asOf: string;
   goldBuy: number;
@@ -161,6 +162,14 @@ const GOLD_PURITIES: Record<GoldPurityKey, { label: string; multiplier: number }
   "24k": { label: "24K", multiplier: 1 },
   "22k": { label: "22K", multiplier: 22 / 24 },
   "18k": { label: "18K", multiplier: 18 / 24 }
+};
+const unitPriceUomLabels: Record<UnitPriceUomKey, string> = {
+  ml: "ml",
+  l: "litre",
+  g: "g",
+  kg: "kg",
+  piece: "piece",
+  custom: "Custom"
 };
 const CITY_RATE_ADJUSTMENTS: Record<string, { label: string; multiplier: number }> = {
   mumbai: { label: "Mumbai", multiplier: 1 },
@@ -324,6 +333,13 @@ const calculatorRoutes: CalculatorRoute[] = [
     category: "Shopping",
     icon: Tag,
     component: DiscountCalculatorPage
+  },
+  {
+    slug: "unit-price-calculator",
+    title: "Unit Price Calculator",
+    category: "Shopping",
+    icon: Tag,
+    component: UnitPriceCalculatorPage
   },
   {
     slug: "age-calculator",
@@ -1455,6 +1471,59 @@ function DiscountCalculatorPage() {
   );
 }
 
+function UnitPriceCalculatorPage() {
+  const [price, setPrice] = useState("");
+  const [quantityPerItem, setQuantityPerItem] = useState("");
+  const [itemCount, setItemCount] = useState("1");
+  const [uom, setUom] = useState<UnitPriceUomKey>("ml");
+  const [customUom, setCustomUom] = useState("");
+
+  const totalPrice = toNumber(price);
+  const quantity = toNumber(quantityPerItem);
+  const count = toNumber(itemCount);
+  const hasValidInputs = totalPrice > 0 && quantity > 0 && count > 0;
+  const uomLabel = uom === "custom" ? customUom.trim() || "custom unit" : unitPriceUomLabels[uom];
+  const totalQuantity = hasValidInputs ? quantity * count : 0;
+  const pricePerItem = hasValidInputs ? totalPrice / count : 0;
+  const pricePerUom = hasValidInputs ? totalPrice / totalQuantity : 0;
+  const comparison = getUnitPriceComparison(uom, pricePerUom);
+  const perItemDescription = `${formatValue(quantity, 4)} ${uomLabel} each`;
+
+  return (
+    <section className="calculator-grid">
+      <article className="panel">
+        <FormGrid>
+          <Field label="Number of items" onChange={setItemCount} placeholder="1" value={itemCount} />
+          <Field label="Quantity per item" onChange={setQuantityPerItem} placeholder="100" value={quantityPerItem} />
+          <Field label="Total price" onChange={setPrice} placeholder="350" suffix="₹" value={price} />
+          <SelectField
+            label="Unit of measure"
+            onChange={(next) => setUom(next as UnitPriceUomKey)}
+            options={Object.entries(unitPriceUomLabels).map(([value, label]) => ({ label, value }))}
+            value={uom}
+          />
+          {uom === "custom" ? (
+            <Field label="Custom UOM label" onChange={setCustomUom} placeholder="capsules" value={customUom} />
+          ) : null}
+          <div className="calculator-note">
+            Enter the quantity in one item. For a 4 × 100 ml pack, enter 100 ml and 4 items.
+          </div>
+        </FormGrid>
+      </article>
+      <ResultPanel
+        items={[
+          { label: "Price per item", value: hasValidInputs ? `${formatUnitPrice(pricePerItem)} · ${perItemDescription}` : "—" },
+          { label: `Price per 1 ${uomLabel}`, value: hasValidInputs ? formatUnitPrice(pricePerUom) : "—" },
+          { label: "Total measured quantity", value: hasValidInputs ? `${formatValue(totalQuantity, 4)} ${uomLabel}` : "—" },
+          ...(comparison
+            ? [{ label: `Comparison price per ${comparison.label}`, value: hasValidInputs ? formatCurrencyAmount(comparison.value, "INR") : "—" }]
+            : [])
+        ]}
+      />
+    </section>
+  );
+}
+
 function AgeCalculatorPage() {
   const [birthDate, setBirthDate] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -1909,6 +1978,24 @@ function formatMoney(value: number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 2
   }).format(Number.isFinite(value) ? value : 0);
+}
+
+function formatUnitPrice(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    currency: "INR",
+    currencyDisplay: "narrowSymbol",
+    maximumFractionDigits: 4,
+    minimumFractionDigits: 2,
+    style: "currency"
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function getUnitPriceComparison(uom: UnitPriceUomKey, pricePerUom: number) {
+  if (uom === "ml") return { label: "litre", value: pricePerUom * 1000 };
+  if (uom === "l") return { label: "litre", value: pricePerUom };
+  if (uom === "g") return { label: "kilogram", value: pricePerUom * 1000 };
+  if (uom === "kg") return { label: "kilogram", value: pricePerUom };
+  return null;
 }
 
 function formatCurrencyAmount(value: number, currency: string) {
