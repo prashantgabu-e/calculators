@@ -23,7 +23,9 @@ import {
   ReceiptIndianRupee,
   ReceiptText,
   Receipt,
+  Search,
   Split,
+  Star,
   Sun,
   Tag,
   TrendingUp,
@@ -473,6 +475,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>(() => getInitialTheme());
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => getInitialSidebarState());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [favoriteSlugs, setFavoriteSlugs] = useState(() => getInitialFavoriteSlugs());
   const isCompactViewport = useCompactViewport();
 
   useEffect(() => {
@@ -483,6 +486,10 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem("calcverse-sidebar-collapsed", String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
+
+  useEffect(() => {
+    window.localStorage.setItem("calcverse-favorites", JSON.stringify(favoriteSlugs));
+  }, [favoriteSlugs]);
 
   useEffect(() => {
     if (!isCompactViewport) {
@@ -498,6 +505,9 @@ function App() {
 
     setIsSidebarCollapsed((current) => !current);
   };
+  const toggleFavorite = (slug: string) => {
+    setFavoriteSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug]);
+  };
 
   return (
     <div className={`shell${isSidebarCollapsed ? " sidebar-collapsed" : ""}`}>
@@ -507,6 +517,7 @@ function App() {
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
         onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+        favoriteSlugs={favoriteSlugs}
         theme={theme}
       />
       <main className="content">
@@ -518,6 +529,8 @@ function App() {
                 isCompactViewport={isCompactViewport}
                 isSidebarCollapsed={isSidebarCollapsed}
                 onToggleSidebar={toggleSidebar}
+                favoriteSlugs={favoriteSlugs}
+                onToggleFavorite={toggleFavorite}
               />
             }
           />
@@ -569,14 +582,24 @@ function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
 }
 
 function DashboardPage({
+  favoriteSlugs,
   isCompactViewport,
   isSidebarCollapsed,
+  onToggleFavorite,
   onToggleSidebar
 }: {
+  favoriteSlugs: string[];
   isCompactViewport: boolean;
   isSidebarCollapsed: boolean;
+  onToggleFavorite: (slug: string) => void;
   onToggleSidebar: () => void;
 }) {
+  const [search, setSearch] = useState("");
+  const normalizedSearch = search.trim().toLowerCase();
+  const matchingRoutes = sortCalculatorRoutesByFavorite(calculatorRoutes, favoriteSlugs).filter((route) =>
+    `${route.title} ${route.category}`.toLowerCase().includes(normalizedSearch)
+  );
+
   return (
     <PageFrame
       icon={LayoutGrid}
@@ -585,15 +608,34 @@ function DashboardPage({
       onToggleSidebar={onToggleSidebar}
       title="Calculators"
     >
+      <label className="calculator-search">
+        <Search aria-hidden="true" size={18} strokeWidth={2.2} />
+        <input onChange={(event) => setSearch(event.target.value)} placeholder="Search calculators" type="search" value={search} />
+      </label>
       <section className="dashboard-grid">
-        {calculatorRoutes.map((route) => (
-          <Link className="dashboard-card" key={route.slug} to={`/${route.slug}`}>
-            <route.icon className="card-icon" size={20} strokeWidth={2} />
-            <span className="card-category">{route.category}</span>
-            <strong>{route.title}</strong>
-          </Link>
+        {matchingRoutes.map((route) => (
+          <article className="dashboard-card" key={route.slug}>
+            <Link className="dashboard-card-link" to={`/${route.slug}`}>
+              <route.icon className="card-icon" size={20} strokeWidth={2} />
+              <span className="card-category">{route.category}</span>
+              <strong>{route.title}</strong>
+            </Link>
+            <button
+              aria-label={`${favoriteSlugs.includes(route.slug) ? "Remove" : "Add"} ${route.title} ${favoriteSlugs.includes(route.slug) ? "from" : "to"} favourites`}
+              aria-pressed={favoriteSlugs.includes(route.slug)}
+              className={`favorite-button${favoriteSlugs.includes(route.slug) ? " active" : ""}`}
+              onClick={(event) => {
+                event.preventDefault();
+                onToggleFavorite(route.slug);
+              }}
+              type="button"
+            >
+              <Star fill="currentColor" size={17} strokeWidth={2.1} />
+            </button>
+          </article>
         ))}
       </section>
+      {matchingRoutes.length === 0 ? <p className="empty-state">No calculators match “{search}”.</p> : null}
     </PageFrame>
   );
 }
@@ -634,6 +676,7 @@ function PageFrame({
 }
 
 function Sidebar({
+  favoriteSlugs,
   isCollapsed,
   isCompactViewport,
   isOpen,
@@ -641,6 +684,7 @@ function Sidebar({
   onToggleTheme,
   theme
 }: {
+  favoriteSlugs: string[];
   isCollapsed: boolean;
   isCompactViewport: boolean;
   isOpen: boolean;
@@ -649,6 +693,7 @@ function Sidebar({
   theme: Theme;
 }) {
   const ThemeIcon = theme === "dark" ? Sun : Moon;
+  const favorites = sortCalculatorRoutesByFavorite(calculatorRoutes, favoriteSlugs).filter((route) => favoriteSlugs.includes(route.slug));
 
   return (
     <>
@@ -675,7 +720,10 @@ function Sidebar({
             <LayoutGrid size={17} strokeWidth={2.1} />
             <span>All calculators</span>
           </NavLink>
-          {Object.entries(groupCalculatorRoutes()).map(([category, routes]) => (
+          {favorites.length ? <div className="nav-group favorites-group"><span className="nav-group-title">Favourites</span>{favorites.map((route) => (
+            <NavLink className={({ isActive }) => navClass(isActive)} key={route.slug} onClick={isCompactViewport ? onClose : undefined} to={`/${route.slug}`}><Star fill="currentColor" size={17} strokeWidth={2.1} /><span>{route.title}</span></NavLink>
+          ))}</div> : null}
+          {Object.entries(groupCalculatorRoutes(favoriteSlugs)).map(([category, routes]) => (
             <div className="nav-group" key={category}>
               <span className="nav-group-title">{category}</span>
               {routes.map((route) => (
@@ -1932,13 +1980,28 @@ function navClass(isActive: boolean) {
   return `nav-item${isActive ? " active" : ""}`;
 }
 
-function groupCalculatorRoutes() {
+function sortCalculatorRoutesByFavorite(routes: CalculatorRoute[], favoriteSlugs: string[]) {
+  return [...routes].sort((first, second) => Number(favoriteSlugs.includes(second.slug)) - Number(favoriteSlugs.includes(first.slug)));
+}
+
+function groupCalculatorRoutes(favoriteSlugs: string[]) {
   const order = ["Core", "Finance", "Tax", "Everyday", "Math", "Shopping", "Health", "Utility"];
   return order.reduce<Record<string, CalculatorRoute[]>>((groups, category) => {
-    const routes = calculatorRoutes.filter((route) => route.category === category);
+    const routes = calculatorRoutes.filter((route) => route.category === category && !favoriteSlugs.includes(route.slug));
     if (routes.length) groups[category] = routes;
     return groups;
   }, {});
+}
+
+function getInitialFavoriteSlugs() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem("calcverse-favorites") ?? "[]");
+    if (!Array.isArray(stored)) return [];
+    const validSlugs = new Set(calculatorRoutes.map((route) => route.slug));
+    return stored.filter((slug): slug is string => typeof slug === "string" && validSlugs.has(slug));
+  } catch {
+    return [];
+  }
 }
 
 function getInitialTheme(): Theme {
